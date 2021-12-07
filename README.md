@@ -1,7 +1,4 @@
-These notebooks demo some coupled 1D-3D models implemented using fenics_ii. 
-
-- DaQu_Convergence_Test checks the convergence of the coupled 1d-3d flow model from [paper](https://www.worldscientific.com/doi/abs/10.1142/S0218202508003108)
-- LaZu_Convergence_Test checks the convergence of the coupled 1d-3d flow model from [paper](https://www.esaim-m2an.org/articles/m2an/abs/2019/06/m2an180210/m2an180210.html)
+This code implements GFEM using fenics_ii. 
 
 ## Dependencies
   - FEniCS 2019.1.+  (python3)
@@ -32,5 +29,3 @@ and similarly,
  
 ## Citing
 If you use FEniCS_ii for your work please cite the [paper](https://link.springer.com/chapter/10.1007/978-3-030-55874-1_63)
-
-For coupled 1D-3D flow mdoels, you can cite my work [paper](https://link.springer.com/article/10.1007/s10596-019-09899-4)
