@@ -57,23 +57,17 @@ def refine_mesh(mesh, Nrefs, points):
     
     p1, p2 = points
     
-    # We could refine just in some places
-    # but for now we ignore that
     for i in range(Nrefs):
-        
-        tol = mesh.hmin()*5.0
 
         cell_markers = MeshFunction('bool', mesh, 1)
         cell_markers.set_all(False)
             
         for cell in cells(mesh):
-            if (cell.midpoint().x()-p1)**2.0 < tol**2.0 or (cell.midpoint().x()-p2)**2.0 < tol**2.0:
+            # Check if cell is in the interval (p1, p2)
+            if cell.midpoint().x()-p1 >= DOLFIN_EPS or cell.midpoint().x()-p2<=DOLFIN_EPS:
                 cell_markers[cell] = True
-        #mesh = refine(mesh, cell_markers)
+        mesh = refine(mesh, cell_markers)
     
-    # We just refine everywhere
-    mesh = refine(refine(refine(refine(refine(refine(mesh))))))
-
     return mesh
 
 
@@ -107,8 +101,6 @@ def test_custom_quadrature_method():
     A_ref = assemble(inner(grad(TrialFunction(V)), grad(TestFunction(V)))*dx)
 
     assert np.linalg.norm(A_ref.array()-A.array()) < 1e-8
-
-
 
     # phi = e^x
     mesh = UnitIntervalMesh(2)
@@ -154,7 +146,7 @@ def test_custom_quadrature_method():
         print( '  % 1.2e  '% (A.array()[dof, dof] - value_dof ))
 
 
-
+def make_babushka_quadrature_table():
 
     # phi = x^alpha
     # Calculating we find int_0^1 (grad(x^alpha N_i), grad(x^alpha N_i))= a/(4a^2-1) for this dof
@@ -163,39 +155,55 @@ def test_custom_quadrature_method():
     # We test the assembly on the same type of mesh, checking the dof value corresponding to the left boundary
     
     # TODO: This fails if alpha -> 0.51 !!
-    
-    alpha = 0.7
-    phi = Expression('pow(x[0]+0.00001, alpha)', degree=2, alpha=alpha)
-    value_dof = alpha/(4*alpha**2.0-1)
-    
-    P = weighted_interpolation_matrix(V, Vf, weight = phi)
-    
-    P = as_backend_type(P).mat()
-    P_T = PETSc.Mat(); P.transpose(P_T)
 
-    # Map the stiffness matrix assembled on the fine mesh
-    # onto the coarse mesh
-    PAf = P.matMult(Af)
-    A = Matrix(PETScMatrix( PAf.matMult(P_T) ))
-
+    mesh = UnitIntervalMesh(2)
+    c = mesh.coordinates()
+    c[:,0] *= 2
+    V = FunctionSpace(mesh, 'CG', 1)
     
-    #assert np.abs(A.array()[dof, dof] - value_dof) < 0.01, print(A.array()[dof, dof], value_dof)
-    print( 'quad_error custom', A.array()[dof, dof] - value_dof )
+    # hat function is now N=1-x on the leftmost cell
+    
+    # find corresponding dof on left boundary
+    dof = np.where(V.tabulate_dof_coordinates()==0)[0][0]
+
+    alpha = 0.8
+    meshf = refine(mesh)   
+    
+    for i in range(0, 8):
+        meshf = refine(meshf)
+        Vf = FunctionSpace(meshf, 'CG', 1)
+    
+        phi = Expression('pow(x[0]+0.00000001, alpha)', degree=2, alpha=alpha)
+        value_dof = alpha/(4*alpha**2.0-1)
+    
+        P = weighted_interpolation_matrix(V, Vf, weight = phi)
+        Af = assemble(inner(grad(TrialFunction(Vf)), grad(TestFunction(Vf)))*dx)
+    
+        P = as_backend_type(P).mat()
+        Af = as_backend_type(Af).mat()
+        P_T = PETSc.Mat(); P.transpose(P_T)
+    
+        # Map the stiffness matrix assembled on the fine mesh
+        # onto the coarse mesh
+        PAf = P.matMult(Af)
+        A = Matrix(PETScMatrix( PAf.matMult(P_T) ))
+        
+        #assert np.abs(A.array()[dof, dof] - value_dof) < 0.01, print(A.array()[dof, dof], value_dof)
+        print( '%1.2e %1.2e'%(meshf.hmin(), A.array()[dof, dof] - value_dof))
 
     # For comparison it's interesting to see how the standard quadrature does
-    interpolation_degrees = [1, 2, 4, 8, 16]
+    interpolation_degrees = [1, 2, 4, 8, 16, 32]
     print('Quad error (fenics) with interpolation degree i')
     for i in interpolation_degrees:
         phi_i = interpolate(phi, FunctionSpace(mesh, 'CG', i))
         A = assemble(inner(grad(phi_i*TrialFunction(V)), grad(phi_i*TestFunction(V)))*dx)
-        print( '  % 1.2e  '% (A.array()[dof, dof] - value_dof ))
+        print( '%i  % 1.2e  '% (i, A.array()[dof, dof] - value_dof ))
 
-    print('Hello')
 
 
 
 def main():
-    test_custom_quadrature_method()
+    make_babushka_quadrature_table()
 
 main()
     
