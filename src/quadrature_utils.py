@@ -1,6 +1,21 @@
-##################################
-##        Helper functions      ##
-##################################
+'''
+Functions for implementing custom quadrature rules in fenics. 
+
+It is (afaik) not possible in fenics to implement quadrature rules that change cell by cell. 
+But for singular solutions we need quadrature rules that use more points close to the singularity.
+
+To implement this efficiently in fenics, we therefore make 
+     * a weighted interpolation matrix P, mapping from our original function space V to a finer function space Vf.
+     * a stiffness matrix Af on the finer mesh
+
+Then the stiffness matrix on the coarse mesh can be calculated as :math:`A = P Af P^T`, with the quadrature points from the 
+refined mesh.
+
+Todo: 
+     * Make logarithmic refinement method
+     * Check properties of logarithmic refinement method on Babushka example (see make_babushka_quadrature_table)
+'''
+
 
 from fenics import *
 import numpy as np
@@ -11,13 +26,13 @@ def weighted_interpolation_matrix(V, Vf, weight):
     Projection function P: V -> Vf mapping a function s
     from a coarse mesh to a refined mesh
     
-    Input:
-    V: Coarse function space
-    Vf: Fine function space
-    weight: weight function 
+    Args:
+        V (df.function_space): Coarse function space
+        Vf (df.function_space): Fine function space
+        weight: weight function 
     
     Returns: 
-    P: Projection matrix
+        P (df petscmatrix): Projection matrix
     '''
     comm = V.mesh().mpi_comm()
     P = PETSc.Mat()
@@ -55,6 +70,8 @@ def weighted_interpolation_matrix(V, Vf, weight):
 
 def refine_mesh(mesh, Nrefs, points):
     
+    # TODO: Make logarithmic refinement
+
     p1, p2 = points
     
     for i in range(Nrefs):
@@ -72,8 +89,13 @@ def refine_mesh(mesh, Nrefs, points):
 
 
 
+
+
 ### Unit test ###
 def test_custom_quadrature_method():
+    ''''
+    Test our quadrature method 
+    '''
     
     # We test the interpolation using different function weight functions phi
 

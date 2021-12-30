@@ -8,7 +8,13 @@ from fenics import *
 import fems as solvers
 from quadrature_utils import refine_mesh
 
+
 def main():
+
+    '''
+    Script for running and comparing GFEM methods on different test problems
+    '''
+
     # Set up testproblem
     # So far we can choose between power function and mollifier
     import testproblems
@@ -42,7 +48,7 @@ def main():
 
         
         # Solve using different FE methods
-        uh, k = solvers.StFEM(V, u_a, f)
+        uh, k = solvers.StandardFEM(V, u_a, f)
 
         uh_enr, k_enr = solvers.GFEM(V, phi, mesh_f, u_a, f, custom_quad=True)
         

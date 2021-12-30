@@ -1,9 +1,26 @@
+'''
+Different manufactured testprolbmes problems solving :math:`-\Delta u_a = f` on the unit interval
+'''
+
+
 from fenics import *
 import sympy as sym
 
 
 def power_function(alpha = 0.51, plot_sol = False):
-    ## Babushka example, u=x^alpha with 0.5 < alpha < 1.5
+    '''
+    Babushka example: :math:`u=x^{\\alpha}`  with :math:`0.5 < \\alpha < 1.5`
+
+    Args:
+        alpha (float): power coefficient, default value 0.51.
+                       We assume 0.5 < alpha < 1.5 
+        plot_sol (bool): plot solution, default=False
+
+    Returns:
+        u_a (df.expression): analytic solution
+        f (df.expression): corresponding rhs
+
+    '''
 
     assert 0.5 < alpha < 1.5, 'Need 0.5 < alpha < 1.5'
     x = sym.symbols('x[0]')
@@ -27,7 +44,18 @@ def power_function(alpha = 0.51, plot_sol = False):
     return u_a, f, phi
 
 def steep_mollifier(beta = 2.5, plot_sol = False):
-    ## Mollifier function with steep gradients
+    '''
+    Mollifier with steep gradients: :math:`u= \\exp(-1/((1-\\beta^2)(x-0.5)^2)) / \\exp(-1)`.
+
+    Args:
+        beta (float): steepness coefficient, default value 2.5
+        plot_sol (bool): plot solution, default=False
+
+    Returns:
+        u_a (df.expression): analytic solution
+        f (df.expression): corresponding rhs
+    '''
+    
 
     x = sym.symbols('x[0]')
 
@@ -56,8 +84,15 @@ def steep_mollifier(beta = 2.5, plot_sol = False):
 
     return u_a, f, phi
 
-def plot_analytic_sol(u_a, f):
-    ## Plot solution
+def plot_analytic_sol(u_a, f, fname = 'analytic_solution'):
+    '''
+    Plot analytic solution
+
+    Args:
+        u_a (function): analytic solution
+        f (function): corresponding rhs
+        fname (str): plot file name, default=analytic_solution
+    '''
     import matplotlib.pyplot as plt
     Vfine = FunctionSpace(UnitIntervalMesh(200), 'CG', 1)
     uai = interpolate(u_a, Vfine)
@@ -68,6 +103,6 @@ def plot_analytic_sol(u_a, f):
     axs[0].plot(Vfine.tabulate_dof_coordinates(), uai.vector().get_local(), 'b', label='$u_a$')
     axs[1].plot(Vfine.tabulate_dof_coordinates(), fi.vector().get_local(), 'r', label='$f$')
     axs[0].legend(); axs[1].legend()
-    fig.savefig('analytic_solution.png')
+    fig.savefig(fname + '.png')
 
 

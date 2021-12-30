@@ -1,12 +1,64 @@
+'''
+Functions solving the Poisson equation
+
+.. math:: 
+
+ -\Delta u = f  \\text{ in } \Omega,  
+
+         u = u_0 \\text{ in } \Omega,
+
+using generalized finite element methods.
+
+All functions take a function space :math:`V`, boundary data :math:`u_0` and right-hand side :math:`f`
+and return the solution approximation and the condition number of the stiffness-matrix.
+
+The generalized fems have an optional argument custom_quad. If custom_quad=True the 
+quadrature is done on a refined mesh. See quadrature_utils.py for details.
+'''
+
+
 from xii import *   
 import numpy as np
 from fenics import *
 from quadrature_utils import weighted_interpolation_matrix
 from petsc4py import PETSc
 
-#####################################################################################################
-## Functions implementing the standard, generalized and stable generalized finite element methods  ##
-#####################################################################################################
+
+def StandardFEM(V, u0, f):
+    '''
+    Standard FEM
+
+    Args:
+        V (df.function_space): Function space
+        u_a (df.expression): analytic solution (for boundary conditions)
+        f (df.expression): right-hand side
+
+    Returns:
+        u (df.function): FE solution 
+        k( float): condition number of stiffness matrix
+    '''
+
+    # Define variational problem
+    u = TrialFunction(V)
+    v = TestFunction(V)
+    a = inner(grad(u), grad(v))*dx
+    L = f*v*dx
+    
+    A, b = assemble(a), assemble(L)
+    
+    # Define boundary condition
+    bc = DirichletBC(V, u0, 'on_boundary')
+
+    # Compute solution
+    u = Function(V)
+    bc.apply(A, b)
+    solve(A, u.vector(), b)
+    
+    k = np.linalg.cond(A.array())
+    
+    return u, k
+
+
 
 # The GFEM method will enrich using phi
 
@@ -28,60 +80,23 @@ class Phi_Bar(UserExpression):
         return ()
 
 
-def StFEM(V, u_a, f):
-    '''
-    Standard FEM
-
-    Input:
-    V: Function space
-    u_a: analytic solution (for boundary conditions)
-    f: right-hand side
-
-    Returns:
-    u: FE solution
-    k: condition number of stiffness matrix
-    '''
-
-    # Define variational problem
-    u = TrialFunction(V)
-    v = TestFunction(V)
-    a = inner(grad(u), grad(v))*dx
-    L = f*v*dx
-    
-    A, b = assemble(a), assemble(L)
-    
-    # Define boundary condition
-    bc = DirichletBC(V, u_a, 'on_boundary')
-
-    # Compute solution
-    u = Function(V)
-    bc.apply(A, b)
-    solve(A, u.vector(), b)
-    
-    k = np.linalg.cond(A.array())
-    
-    return u, k
-
-
-
 ## Generalized FEM
 def GFEM(V, phi, mesh_f, u_a, f, custom_quad):
     '''
-    Implentation of a GFEM
+    Implentation of a GFEM method with enrichment function phi
     
-    Input: 
-    V: P1 function space 
-    phi: enrichment function
-    mesh_f: a refined mesh for the quadrature
-    u_a: analytic solution (for boundary conditions)
-    f: right-hand side 
-    custom_quad (bool): do quadrature on refined mesh
+    Args:
+        V (df.function_space): P1 function space 
+        phi (df.function): enrichment function
+        mesh_f (df.mesh): a refined mesh for the quadrature
+        u_a (df.expression): analytic solution (for boundary conditions)
+        f (df.expression): rhs
+        custom_quad (bool): do quadrature on refined mesh
     
     Returns: 
-    uh: Full solution on the refined mesh
-    k: Condition number of the (full) stiffness matrix
+        uh (df.function): Full solution on the refined mesh
+        k (float): Condition number of the (full) stiffness matrix
     '''
-
     mesh = V.mesh()
         
     phi_i = interpolate(phi, FunctionSpace(mesh, 'CG', 2))
@@ -197,18 +212,19 @@ def GFEM(V, phi, mesh_f, u_a, f, custom_quad):
 ## Stable generalized FEM
 def Stable_GFEM(V, phi, mesh_f, u_a, f, custom_quad):
     '''
-    Implentation of a stable GFEM method
+    Implentation of a stable GFEM method with enrichment function phi
     
-    Input: 
-    V: P1 function space 
-    phi: enrichment function
-    mesh_f: a refined mesh for the quadrature
-    u_a: analytic solution (for boundary conditions)
-    custom_quad (bool): do quadrature on refined mesh
+    Args:
+        V (df.function_space): P1 function space 
+        phi (df.function): enrichment function
+        mesh_f (df.mesh): a refined mesh for the quadrature
+        u_a (df.expression): analytic solution (for boundary conditions)
+        f (df.expression): rhs
+        custom_quad (bool): do quadrature on refined mesh
     
     Returns: 
-    uh: Full solution on the refined mesh
-    k: Condition number of the (full) stiffness matrix
+        uh (df.function): Full solution on the refined mesh
+        k (float): Condition number of the (full) stiffness matrix
     '''
     mesh = V.mesh()
 
@@ -224,6 +240,8 @@ def Stable_GFEM(V, phi, mesh_f, u_a, f, custom_quad):
     a[0][0] = inner(grad(u1), grad(v1))*dx
     a[1][1] = inner(grad(phi_i*u2), grad(phi_i*v2))*dx
     
+    # The SGFEM has zero non-diagional blocks (contrary to the GFEM)
+
     L = block_form(W, 1) 
     L[0] = inner(f, v1)*dx
     L[1] = inner(f, phi_i*v2)*dx
