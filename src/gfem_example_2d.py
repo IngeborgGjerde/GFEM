@@ -5,7 +5,6 @@ np.set_printoptions(suppress=True)
 import matplotlib.pyplot as plt
 
 from fenics import *
-set_log_level(LogLevel.ERROR)
 import fems as solvers
 from quadrature_utils import refine_mesh
 from mshr import *
