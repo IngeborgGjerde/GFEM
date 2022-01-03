@@ -7,18 +7,22 @@ import matplotlib.pyplot as plt
 from fenics import *
 import fems as solvers
 from quadrature_utils import refine_mesh
+from mshr import *
 
 
 def main():
 
     '''
-    Script for running and comparing GFEM methods on different test problems in 1D
+    Script for running and comparing GFEM methods on different test problems in 2D
     '''
 
     # Set up testproblem
     # So far we can choose between power function and mollifier
     import testproblems
-    u_a, f, phi = testproblems.power_function(alpha = 0.51)
+    center=[0.5, 0.5]
+    radius = 0.1
+
+    u_a, f_gamma, phi = testproblems.fundsol_circlesource(center, radius, plot_sol=True)
 
 
     # Solve using standard FEM, GFEM and Stable GFEM
@@ -31,13 +35,19 @@ def main():
 
     uhs, uh_enrs, uh_sgfems, error, error_enr, error_st_enr, hs = [],[],[],[],[],[],[]
 
+
+
     Ns = [2, 4, 8, 16]
 
     for ix_N, N in enumerate(Ns):
         
         # Set up mesh and function spaces
-        mesh = UnitIntervalMesh(N)
-        mesh_f = refine_mesh(mesh, 4, [0.2, 0.8]) # refined mesh for quadrature rule
+        mesh = UnitSquareMesh(N, N) #2d mesh
+        mesh_f = refine_mesh(mesh, 3, [0.2, 0.8]) # refined mesh for quadrature rule
+
+        # 1d mesh for circle source
+        circlemesh = generate_mesh(Circle(Point(*center), radius), 80)
+        gamma = BoundaryMesh(circlemesh, 'exterior')
 
         V, V3 = [FunctionSpace(mesh, 'CG', i) for i in [1,3]]
         
@@ -48,11 +58,11 @@ def main():
 
         
         # Solve using different FE methods
-        uh, k = solvers.StandardFEM(V, u_a, f)
+        uh, k = solvers.StandardFEM(V, u_a, Constant(0.0), gamma=gamma, f_gamma=f_gamma)
 
-        uh_enr, k_enr = solvers.GFEM(V, phi, mesh_f, u_a, f, custom_quad=True)
+        uh_enr, k_enr = solvers.GFEM(V, phi, mesh_f, u_a, f_gamma, custom_quad=False, gamma=gamma, f_gamma=f_gamma)
         
-        uh_st_enr, k_st_enr = solvers.Stable_GFEM(V, phi_bar, mesh_f, u_a, f, custom_quad=True)
+        uh_st_enr, k_st_enr = solvers.Stable_GFEM(V, phi_bar, mesh_f, u_a, f_gamma, custom_quad=False, gamma=gamma, f_gamma=f_gamma)
         
         uhs.append(uh); uh_enrs.append(uh_enr); uh_sgfems.append(uh_st_enr)
         
@@ -82,6 +92,8 @@ def main():
                             error_st_enr[-1][0], r_st_enr[0], error_st_enr[-1][1], r_st_enr[1], k_st_enr,
                             error_enr[-1][0], r_enr[0], error_enr[-1][1], r_enr[1], k_enr) )
 
+    
+    
     # Plot solution
     fig, axs = plt.subplots(1,len(Ns),figsize=(15,5))
     fig.suptitle('FEM solutions')

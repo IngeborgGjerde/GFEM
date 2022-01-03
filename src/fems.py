@@ -24,41 +24,56 @@ from quadrature_utils import weighted_interpolation_matrix
 from petsc4py import PETSc
 
 
-def StandardFEM(V, u0, f):
+
+def StandardFEM(V, u0, f, gamma=None, f_gamma=None):
     '''
     Standard FEM
 
     Args:
         V (df.function_space): Function space
+        gamma (df.mesh): 1D mesh for circle
         u_a (df.expression): analytic solution (for boundary conditions)
         f (df.expression): right-hand side
+        gamma (df.mesh): lower-dim domain for Dirac source
+        g_famma (df.expression): intensity of Dirac source term
 
     Returns:
         u (df.function): FE solution 
         k( float): condition number of stiffness matrix
     '''
-
+    
     # Define variational problem
     u = TrialFunction(V)
     v = TestFunction(V)
-    a = inner(grad(u), grad(v))*dx
-    L = f*v*dx
-    
-    A, b = assemble(a), assemble(L)
-    
-    # Define boundary condition
-    bc = DirichletBC(V, u0, 'on_boundary')
 
-    # Compute solution
-    u = Function(V)
-    bc.apply(A, b)
-    solve(A, u.vector(), b)
+    # Averaging surface is cylinder obtained by sweeping shape along 1d
     
-    k = np.linalg.cond(A.array())
+    W = [V]
+
+    a = block_form(W, 2)
+    a[0][0] = inner(grad(u), grad(v))*dx
+
+    L = block_form(W, 1)  # The second argument is arity
+    L[0] = inner(f, v)*dx
     
-    return u, k
+    if gamma: 
+        dx_ = Measure('dx', gamma)
+        T_v = Trace(v, gamma)
+        L[0] = inner(f_gamma, T_v)*dx_
 
+    A, b = map(ii_assemble, (a, L))
+    W_bcs = [[DirichletBC(V, u0, 'on_boundary')]]
 
+    A, b = apply_bc(A, b, W_bcs)
+    uh = ii_Function(W)
+    solve(ii_convert(A), uh.vector(), ii_convert(b))
+    
+    k = np.linalg.cond(A[0][0].array())
+    
+    return uh[0], k
+    
+    
+    
 
 # The GFEM method will enrich using phi
 
@@ -81,7 +96,7 @@ class Phi_Bar(UserExpression):
 
 
 ## Generalized FEM
-def GFEM(V, phi, mesh_f, u_a, f, custom_quad):
+def GFEM(V, phi, mesh_f, u_a, f, custom_quad=True, gamma=None, f_gamma=None):
     '''
     Implentation of a GFEM method with enrichment function phi
     
@@ -92,11 +107,16 @@ def GFEM(V, phi, mesh_f, u_a, f, custom_quad):
         u_a (df.expression): analytic solution (for boundary conditions)
         f (df.expression): rhs
         custom_quad (bool): do quadrature on refined mesh
+        gamma (df.mesh): lower-dim domain for Dirac source
+        g_famma (df.expression): intensity of Dirac source term
     
     Returns: 
         uh (df.function): Full solution on the refined mesh
         k (float): Condition number of the (full) stiffness matrix
     '''
+
+    # TODO: Implement custom quadrature rule for circle source
+
     mesh = V.mesh()
         
     phi_i = interpolate(phi, FunctionSpace(mesh, 'CG', 2))
@@ -105,6 +125,10 @@ def GFEM(V, phi, mesh_f, u_a, f, custom_quad):
     
     u1, u2 = map(TrialFunction, W)
     v1, v2 = map(TestFunction, W)
+
+    if gamma: 
+        dx_ = Measure('dx', gamma)
+        T_v1, T_v2, T_phi = (Trace(f, gamma) for f in (v1,v2, phi_i))
     
     u2 = u2*phi_i
     v2 = v2*phi_i
@@ -119,6 +143,11 @@ def GFEM(V, phi, mesh_f, u_a, f, custom_quad):
     L = block_form(W, 1) 
     L[0] = inner(f, v1)*dx
     L[1] = inner(f, phi_i*v2)*dx
+
+    if gamma: 
+        L[0] = inner(f_gamma, T_phi*T_v1)*dx_
+        L[0] = inner(f_gamma, T_phi*T_v2)*dx_
+
     
     AA, b = map(ii_assemble, (a, L))
     
@@ -129,6 +158,9 @@ def GFEM(V, phi, mesh_f, u_a, f, custom_quad):
     # rule on a finer mesh and map the values back to our coarse mesh
     
     if custom_quad:
+        # TODO: Implement custom quadrature rule for circle source
+        assert gamma==None
+
         # Make fine functions
         VLf = FunctionSpace(mesh_f, 'CG', 1)
         uf = TrialFunction(VLf)
@@ -210,7 +242,7 @@ def GFEM(V, phi, mesh_f, u_a, f, custom_quad):
 
 
 ## Stable generalized FEM
-def Stable_GFEM(V, phi, mesh_f, u_a, f, custom_quad):
+def Stable_GFEM(V, phi, mesh_f, u_a, f, custom_quad, gamma=None, f_gamma=None):
     '''
     Implentation of a stable GFEM method with enrichment function phi
     
@@ -221,11 +253,14 @@ def Stable_GFEM(V, phi, mesh_f, u_a, f, custom_quad):
         u_a (df.expression): analytic solution (for boundary conditions)
         f (df.expression): rhs
         custom_quad (bool): do quadrature on refined mesh
+        gamma (df.mesh): lower-dim domain for Dirac source
+        g_famma (df.expression): intensity of Dirac source term
     
     Returns: 
         uh (df.function): Full solution on the refined mesh
         k (float): Condition number of the (full) stiffness matrix
     '''
+
     mesh = V.mesh()
 
     phi_i = interpolate(phi, FunctionSpace(mesh, 'CG', 2))
@@ -234,6 +269,10 @@ def Stable_GFEM(V, phi, mesh_f, u_a, f, custom_quad):
     
     u1, u2 = map(TrialFunction, W) #u1 is standard solution, u2 is enriched part of solution
     v1, v2 = map(TestFunction, W) 
+
+    if gamma: 
+        dx_ = Measure('dx', gamma)
+        T_v1, T_v2, T_phi = (Trace(f, gamma) for f in (v1,v2, phi_i))
     
     # Input blocks
     a = block_form(W, 2)
@@ -247,6 +286,11 @@ def Stable_GFEM(V, phi, mesh_f, u_a, f, custom_quad):
     L[1] = inner(f, phi_i*v2)*dx
     
     AA, b = map(ii_assemble, (a, L))
+
+    if gamma: 
+        L[0] = inner(f_gamma, T_phi*T_v1)*dx_
+        L[0] = inner(f_gamma, T_phi*T_v2)*dx_
+
     
     
     # The blocks we put in were computed using quadrature rules on
@@ -256,6 +300,9 @@ def Stable_GFEM(V, phi, mesh_f, u_a, f, custom_quad):
     # rule on a finer mesh and map the values back to our coarse mesh
     
     if custom_quad:
+        # TODO: Implement custom quadrature rule for circle source
+        assert gamma==None
+        
         # Make fine functions
         VLf = FunctionSpace(mesh_f, 'CG', 1)
         uf = TrialFunction(VLf)

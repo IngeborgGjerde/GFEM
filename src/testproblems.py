@@ -19,6 +19,7 @@ def power_function(alpha = 0.51, plot_sol = False):
     Returns:
         u_a (df.expression): analytic solution
         f (df.expression): corresponding rhs
+        phi (df.expression): corresponding enrichment function
 
     '''
 
@@ -39,7 +40,9 @@ def power_function(alpha = 0.51, plot_sol = False):
     u_a, phi, f = [Expression(func, degree=2) for func in [u_a, phi, f]]
     
     if plot_sol:
-        plot_analytic_sol(u_a, f)
+        # mesh to plot on 
+        Vfine = FunctionSpace(UnitIntervalMesh(200), 'CG', 1)
+        plot_analytic_sol(u_a, f, Vfine)
 
     return u_a, f, phi
 
@@ -54,6 +57,7 @@ def steep_mollifier(beta = 2.5, plot_sol = False):
     Returns:
         u_a (df.expression): analytic solution
         f (df.expression): corresponding rhs
+        phi (df.expression): corresponding enrichment function
     '''
     
 
@@ -79,14 +83,65 @@ def steep_mollifier(beta = 2.5, plot_sol = False):
 
     u_a, phi, f = [Expression(func, degree=2) for func in [u_a, phi, f]]
 
-    if plot_sol:
-        plot_analytic_sol(u_a, f)
+    if plot_sol: 
+        # mesh to plot on 
+        Vfine = FunctionSpace(UnitIntervalMesh(200), 'CG', 1)
+        plot_analytic_sol(u_a, f, Vfine)
 
     return u_a, f, phi
 
-def plot_analytic_sol(u_a, f, fname = 'analytic_solution'):
+
+
+def fundsol_circlesource(center, radius, plot_sol = False):
     '''
-    Plot analytic solution
+    Solution for the Poisson equation in a 2D domain with a circle source: 
+    :math:`-\\Delta u= f \\delta_\\Gamma` where :math:`\\delta_\\Gamma` is the circle source (1D),
+
+    Args:
+        center (list): [x,y]-coordinates of the circle center
+        radius (float): circle radius
+        plot_sol (bool): plot solution, default=False
+
+    Returns:
+        u_a (df.expression): analytic solution
+        f (df.expression): corresponding rhs
+        phi (df.expression): corresponding enrichment function
+    '''
+
+    x, y = sym.symbols('x[0] x[1]')
+    r = sym.sqrt( (x-center[0])**2.0 + (y-center[1])**2.0 + DOLFIN_EPS) 
+
+    f = 10.0/radius
+    Ie = sym.LessThan(radius, r)
+    G = -radius*sym.ln(r/radius)
+    u_a = f*G
+
+    u_a, G, Ie = [sym.printing.ccode(expr) for expr in [u_a, G, Ie]]
+
+    u_a = '(' + u_a + ')*' + '(' + Ie + ')' # sympy cannot convert expressions 
+    G = '(' + G + ')*' + '(' + Ie + ')'     # involving "less than" to ccode
+
+    R_val = 0.1
+
+    G = Expression(G.replace('log', 'std::log'), degree=3, R=R_val)
+    u_a = Expression(u_a.replace('log', 'std::log'), degree=3, R=R_val)
+    f = 10.0/R_val
+    f = Constant(f)
+
+    phi = u_a
+
+    if plot_sol: 
+        # mesh to plot on 
+        Vfine = FunctionSpace(UnitSquareMesh(100, 100), 'CG', 1)
+        plot_analytic_sol(u_a, f, Vfine)
+
+    return u_a, f, phi
+
+
+
+def plot_analytic_sol(u_a, f, Vfine, fname = 'analytic_solution'):
+    '''
+    Plot analytic solution with matplotlib
 
     Args:
         u_a (function): analytic solution
@@ -94,15 +149,24 @@ def plot_analytic_sol(u_a, f, fname = 'analytic_solution'):
         fname (str): plot file name, default=analytic_solution
     '''
     import matplotlib.pyplot as plt
-    Vfine = FunctionSpace(UnitIntervalMesh(200), 'CG', 1)
+
+
     uai = interpolate(u_a, Vfine)
     fi = interpolate(f, Vfine)
 
-    fig, axs = plt.subplots(1,2, figsize=(10,5))
+    if Vfine.mesh().geometric_dimension() == 1:
+        fig, axs = plt.subplots(1,2, figsize=(10,5))
+        axs[0].plot(Vfine.tabulate_dof_coordinates(), uai.vector().get_local(), 'b', label='$u_a$')
+        axs[1].plot(Vfine.tabulate_dof_coordinates(), fi.vector().get_local(), 'r', label='$f$')
+        axs[0].legend(); axs[1].legend()
+    else: 
+        fig, axs = plt.subplots(1,1, figsize=(10,5))
+        c = plot(uai, mode='color')
+        plt.colorbar(c)
+        axs.legend() 
+    
     fig.suptitle('Analytic solution')
-    axs[0].plot(Vfine.tabulate_dof_coordinates(), uai.vector().get_local(), 'b', label='$u_a$')
-    axs[1].plot(Vfine.tabulate_dof_coordinates(), fi.vector().get_local(), 'r', label='$f$')
-    axs[0].legend(); axs[1].legend()
     fig.savefig(fname + '.png')
+
 
 
