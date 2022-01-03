@@ -1,0 +1,167 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test problems &#8212; GFEniCS  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Quadrature methods" href="quad.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-testproblems">
+<span id="test-problems"></span><h1>Test problems<a class="headerlink" href="#module-testproblems" title="Permalink to this headline">¶</a></h1>
+<p>Different manufactured testprolbmes problems solving <span class="math notranslate nohighlight">\(-\Delta u_a = f\)</span> on the unit interval</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="testproblems.power_function">
+<span class="sig-prename descclassname"><span class="pre">testproblems.</span></span><span class="sig-name descname"><span class="pre">power_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.51</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_sol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#testproblems.power_function" title="Permalink to this definition">¶</a></dt>
+<dd><p>Babushka example: <span class="math notranslate nohighlight">\(u=x^{\alpha}\)</span>  with <span class="math notranslate nohighlight">\(0.5 &lt; \alpha &lt; 1.5\)</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alpha</strong> (<em>float</em>) – power coefficient, default value 0.51.
+We assume 0.5 &lt; alpha &lt; 1.5</p></li>
+<li><p><strong>plot_sol</strong> (<em>bool</em>) – plot solution, default=False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>u_a</strong> (<em>df.expression</em>) – analytic solution</p></li>
+<li><p><strong>f</strong> (<em>df.expression</em>) – corresponding rhs</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="testproblems.steep_mollifier">
+<span class="sig-prename descclassname"><span class="pre">testproblems.</span></span><span class="sig-name descname"><span class="pre">steep_mollifier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_sol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#testproblems.steep_mollifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mollifier with steep gradients: <span class="math notranslate nohighlight">\(u= \exp(-1/((1-\beta^2)(x-0.5)^2)) / \exp(-1)\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>beta</strong> (<em>float</em>) – steepness coefficient, default value 2.5</p></li>
+<li><p><strong>plot_sol</strong> (<em>bool</em>) – plot solution, default=False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>u_a</strong> (<em>df.expression</em>) – analytic solution</p></li>
+<li><p><strong>f</strong> (<em>df.expression</em>) – corresponding rhs</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="testproblems.plot_analytic_sol">
+<span class="sig-prename descclassname"><span class="pre">testproblems.</span></span><span class="sig-name descname"><span class="pre">plot_analytic_sol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'analytic_solution'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#testproblems.plot_analytic_sol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot analytic solution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u_a</strong> (<em>function</em>) – analytic solution</p></li>
+<li><p><strong>f</strong> (<em>function</em>) – corresponding rhs</p></li>
+<li><p><strong>fname</strong> (<em>str</em>) – plot file name, default=analytic_solution</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">GFEniCS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="gfem_ex.html">Run GFEM example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fems.html">Finite element solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quad.html">Quadrature methods</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Test problems</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="quad.html" title="previous chapter">Quadrature methods</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Ingeborg Gjerde, Johannes Haubner and Miroslav Kuchta.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/testproblems.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
