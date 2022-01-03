@@ -12,7 +12,7 @@ from quadrature_utils import refine_mesh
 def main():
 
     '''
-    Script for running and comparing GFEM methods on different test problems in 1D
+    Script for running and comparing GFEM methods on different test problems
     '''
 
     # Set up testproblem
