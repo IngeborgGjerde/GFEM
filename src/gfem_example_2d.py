@@ -10,6 +10,8 @@ import fems as solvers
 from quadrature_utils import refine_mesh
 from mshr import *
 
+## TODO: So far we only solve here for the circle source problem -> expand suite of test problems in 2D
+## TODO: Fix plotting of 2D approximation
 
 def main():
 

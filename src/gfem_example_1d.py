@@ -10,16 +10,11 @@ import fems as solvers
 from quadrature_utils import refine_mesh
 
 
-def main():
+def run_conv_test(u_a, f, phi):
 
     '''
     Script for running and comparing GFEM methods on different test problems in 1D
     '''
-
-    # Set up testproblem
-    # So far we can choose between power function and mollifier
-    import testproblems
-    u_a, f, phi = testproblems.power_function(alpha = 0.51)
 
 
     # Solve using standard FEM, GFEM and Stable GFEM
@@ -101,7 +96,31 @@ def main():
         axs[i].set_xlabel('x')
         axs[i].set_title('N=%i'%Ns[i])
         
-    fig.savefig('alpha.png')
+    fig.savefig('approximation.png')
 
 
-main()
+
+import argparse
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    # Problem parameters
+    parser.add_argument('--testproblem', help='options: power function x^alpha or mollifier', default='power', type=str)
+    parser.add_argument('--alpha', help='power', default=0.6, type=float)
+    parser.add_argument('--beta', help='mollifier steepness', default = 2.5, type = float)
+
+    args = parser.parse_args()
+
+    # Set up testproblem
+    # So far we can choose between power function and mollifier
+    import testproblems
+
+    if args.testproblem == 'power':
+        u_a, f, phi = testproblems.power_function(alpha = args.alpha, plot_sol=True)
+    elif args.testproblem == 'mollifier':
+        u_a, f, phi = testproblems.steep_mollifier(beta = args.beta, plot_sol=True)
+    else:
+        print('Please specificy testproblem as either power or mollifier')
+
+    run_conv_test(u_a, f, phi)
